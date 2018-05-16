@@ -518,7 +518,8 @@ function printPathNoParens(path, options, print, args) {
       }
       return group(concat([castGroup, path.call(print, "expression")]));
     }
-    case "MemberExpression": {
+    case "MemberExpression":
+    case "OptionalMemberExpression": {
       const parent = path.getParentNode();
       let firstNonMemberParent;
       let i = 0;
@@ -990,7 +991,8 @@ function printPathNoParens(path, options, print, args) {
 
       return concat(parts);
     case "NewExpression":
-    case "CallExpression": {
+    case "CallExpression":
+    case "OptionalCallExpression": {
       const isNew = n.type === "NewExpression";
 
       const optional = printOptionalToken(path);
@@ -1017,7 +1019,7 @@ function printPathNoParens(path, options, print, args) {
           isNew ? "new " : "",
           path.call(print, "callee"),
           optional,
-          path.call(print, "typeParameters"),
+          printFunctionTypeParameters(path, options, print),
           concat(["(", join(", ", path.map(print, "arguments")), ")"])
         ]);
       }
@@ -3561,6 +3563,9 @@ function printTypeAnnotation(path, options, print) {
 
 function printFunctionTypeParameters(path, options, print) {
   const fun = path.getValue();
+  if (fun.typeArguments) {
+    return path.call(print, "typeArguments");
+  }
   if (fun.typeParameters) {
     return path.call(print, "typeParameters");
   }
@@ -4124,15 +4129,18 @@ function printClass(path, options, print) {
 
 function printOptionalToken(path) {
   const node = path.getValue();
+
   if (!node.optional) {
     return "";
   }
+
   if (
-    node.type === "CallExpression" ||
-    (node.type === "MemberExpression" && node.computed)
+    node.type === "OptionalCallExpression" ||
+    (node.type === "OptionalMemberExpression" && node.computed)
   ) {
     return "?.";
   }
+
   return "?";
 }
 
