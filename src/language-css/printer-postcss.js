@@ -498,79 +498,89 @@ function genericPrint(path, options, print) {
           continue;
         }
 
-        const isNextHash =
-          iNextNode.type === "value-word" && iNextNode.value === "#";
-
         const isMathOperator = isMathOperatorNode(iNode);
         const isNextMathOperator = isMathOperatorNode(iNextNode);
 
-        const isMultiplication =
-          !isNextHash && isMathOperator && iNode.value === "*";
-        const isNextMultiplication =
-          !isRightCurlyBrace && isNextMathOperator && iNextNode.value === "*";
+        // Math Operation
+        if ((isMathOperator && iPrevNode) || isNextMathOperator) {
+          const isNextHash =
+            iNextNode.type === "value-word" && iNextNode.value === "#";
 
-        const isDivision = !isNextHash && isMathOperator && iNode.value === "/";
-        const isNextDivision =
-          !isRightCurlyBrace && isNextMathOperator && iNextNode.value === "/";
+          const isMultiplication =
+            !isNextHash && isMathOperator && iNode.value === "*";
+          const isNextMultiplication =
+            !isRightCurlyBrace && isNextMathOperator && iNextNode.value === "*";
 
-        const isAddition = !isNextHash && isMathOperator && iNode.value === "+";
-        const isNextAddition =
-          !isRightCurlyBrace && isNextMathOperator && iNextNode.value === "+";
+          const isDivision =
+            !isNextHash && isMathOperator && iNode.value === "/";
+          const isNextDivision =
+            !isRightCurlyBrace && isNextMathOperator && iNextNode.value === "/";
 
-        const isPrevFunction = iPrevNode && iPrevNode.type === "value-func";
-        const isFunction = iNode.type === "value-func";
-        const isNextFunction = iNextNode.type === "value-func";
-        const isNextNextFunction =
-          iNextNextNode && iNextNextNode.type === "value-func";
+          const isAddition =
+            !isNextHash && isMathOperator && iNode.value === "+";
+          const isNextAddition =
+            !isRightCurlyBrace && isNextMathOperator && iNextNode.value === "+";
 
-        const isPrevWord =
-          iPrevNode &&
-          ["value-word", "value-atword"].indexOf(iPrevNode.type) !== -1;
-        const isWord =
-          ["value-word", "value-atword"].indexOf(iNode.type) !== -1;
-        const isNextWord =
-          ["value-word", "value-atword"].indexOf(iNextNode.type) !== -1;
-        const isNextNextWord =
-          iNextNextNode &&
-          ["value-word", "value-atword"].indexOf(iNextNextNode.type) !== -1;
+          const isPrevFunction = iPrevNode && iPrevNode.type === "value-func";
+          const isFunction = iNode.type === "value-func";
+          const isNextFunction = iNextNode.type === "value-func";
+          const isNextNextFunction =
+            iNextNextNode && iNextNextNode.type === "value-func";
 
-        // Math operators
-        const insideCalcFunction = insideValueFunctionNode(path, "calc");
+          const isPrevWord =
+            iPrevNode &&
+            ["value-word", "value-atword"].indexOf(iPrevNode.type) !== -1;
+          const isWord =
+            ["value-word", "value-atword"].indexOf(iNode.type) !== -1;
+          const isNextWord =
+            ["value-word", "value-atword"].indexOf(iNextNode.type) !== -1;
+          const isNextNextWord =
+            iNextNextNode &&
+            ["value-word", "value-atword"].indexOf(iNextNextNode.type) !== -1;
 
-        const hasSpaceBeforeOperator =
-          isNextNextFunction || isNextNextWord || isFunction || isWord;
+          const hasSpaceBeforeOperator =
+            isNextNextFunction || isNextNextWord || isFunction || isWord;
+          const hasSpaceAfterOperator =
+            isNextFunction || isNextWord || isPrevFunction || isPrevWord;
 
-        const hasSpaceAfterOperator =
-          isNextFunction || isNextWord || isPrevFunction || isPrevWord;
-
-        if (
-          (isMathOperator || isNextMathOperator) &&
-          // Multiplication
-          !isMultiplication &&
-          !isNextMultiplication &&
-          // Division
-          !(isNextDivision && (hasSpaceBeforeOperator || insideCalcFunction)) &&
-          !(isDivision && (hasSpaceAfterOperator || insideCalcFunction)) &&
-          // Addition
-          !(isNextAddition && hasSpaceBeforeOperator) &&
-          !(isAddition && hasSpaceAfterOperator)
-        ) {
-          const isNextParenGroup = isParenGroupNode(iNextNode);
-          const isNextValueNumber = iNextNode.type === "value-number";
+          // Math operators
+          const insideCalcFunction = insideValueFunctionNode(path, "calc");
 
           if (
-            (iNextNode.raws && iNextNode.raws.before === "") ||
-            (isMathOperator &&
-              (isNextParenGroup ||
-                isNextWord ||
-                isNextValueNumber ||
-                isMathOperatorNode(iNextNode)) &&
-              (!iPrevNode || (iPrevNode && isMathOperatorNode(iPrevNode))))
+            // Multiplication
+            !isMultiplication &&
+            !isNextMultiplication &&
+            // Division
+            !(
+              isNextDivision &&
+              (hasSpaceBeforeOperator || insideCalcFunction)
+            ) &&
+            !(isDivision && (hasSpaceAfterOperator || insideCalcFunction)) &&
+            // Addition
+            !(isNextAddition && hasSpaceBeforeOperator) &&
+            !(isAddition && hasSpaceAfterOperator)
           ) {
-            continue;
+            const isNextParenGroup = isParenGroupNode(iNextNode);
+            const isNextValueNumber = iNextNode.type === "value-number";
+
+            if (
+              (iNextNode.raws && iNextNode.raws.before === "") ||
+              (isMathOperator &&
+                (isNextParenGroup ||
+                  isNextWord ||
+                  isNextValueNumber ||
+                  isMathOperatorNode(iNextNode)) &&
+                (!iPrevNode || (iPrevNode && isMathOperatorNode(iPrevNode))))
+            ) {
+              continue;
+            }
           }
         }
 
+        const isSingleAdditionOrSubtraction =
+          isMathOperator &&
+          !iNextNode &&
+          (iNode.value === "+" || iNode.value === "-");
         const isEqualityOperator =
           isControlDirective && isEqualityOperatorNode(iNode);
         const isRelationalOperator =
