@@ -247,8 +247,6 @@ function couldGroupArg(arg) {
         arg.body.type === "ArrowFunctionExpression" ||
         arg.body.type === "ObjectExpression" ||
         arg.body.type === "ArrayExpression" ||
-        isCallExpression(arg.body) ||
-        arg.body.type === "ConditionalExpression" ||
         isJsxNode(arg.body)))
   );
 }
