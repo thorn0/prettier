@@ -243,15 +243,26 @@ function isDecoratedFunction(path) {
     (node) =>
       node.type === "ArrowFunctionExpression" &&
       node.body.type === "BlockStatement",
-    (node, name, number) =>
-      node.type === "CallExpression" &&
-      name === "arguments" &&
-      number === 0 &&
-      node.arguments.length === 1 &&
-      node.callee.type === "CallExpression" &&
-      node.callee.callee.type === "Identifier",
+    (node, name) => {
+      if (
+        node.type === "CallExpression" &&
+        name === "arguments" &&
+        node.arguments.length === 1 &&
+        node.callee.type === "CallExpression"
+      ) {
+        const decorator = node.callee.callee;
+        return (
+          decorator.type === "Identifier" ||
+          (decorator.type === "MemberExpression" &&
+            !decorator.computed &&
+            decorator.object.type === "Identifier" &&
+            decorator.property.type === "Identifier")
+        );
+      }
+      return false;
+    },
     (node, name) => node.type === "VariableDeclarator" && name === "init",
-    (node) => node.kind === "const"
+    (node) => node.kind === "const" && node.declarations.length === 1
   );
 }
 

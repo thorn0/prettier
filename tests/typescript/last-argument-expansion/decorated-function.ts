@@ -15,3 +15,13 @@ const Counter = decorator("my-counter")(
     );
   }
 );
+
+const Counter2 = decorators.decorator("my-counter")(
+  (props: { initialCount?: number; label?: string }) => {
+    return () => (
+      <button onclick={onClick}>
+        {p.label}: {s.count}
+      </button>
+    );
+  }
+);
