@@ -25,3 +25,9 @@ const Counter2 = decorators.decorator("my-counter")(
     );
   }
 );
+
+export default decorators.decorator("my-counter")(
+  (props: { initialCount?: number; label?: string }) => {
+    return foo;
+  }
+);

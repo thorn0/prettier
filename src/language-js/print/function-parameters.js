@@ -261,8 +261,12 @@ function isDecoratedFunction(path) {
       }
       return false;
     },
-    (node, name) => node.type === "VariableDeclarator" && name === "init",
-    (node) => node.kind === "const" && node.declarations.length === 1
+    (node, name) =>
+      (node.type === "VariableDeclarator" && name === "init") ||
+      (node.type === "ExportDefaultDeclaration" && name === "declaration"),
+    (node) =>
+      node.type !== "VariableDeclaration" ||
+      (node.kind === "const" && node.declarations.length === 1)
   );
 }
 

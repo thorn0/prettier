@@ -72,6 +72,12 @@ const Counter2 = decorators.decorator("my-counter")(
   }
 );
 
+export default decorators.decorator("my-counter")(
+  (props: { initialCount?: number; label?: string }) => {
+    return foo;
+  }
+);
+
 =====================================output=====================================
 const Counter = decorator("my-counter")((props: {
   initialCount?: number;
@@ -101,6 +107,13 @@ const Counter2 = decorators.decorator("my-counter")((props: {
       {p.label}: {s.count}
     </button>
   );
+});
+
+export default decorators.decorator("my-counter")((props: {
+  initialCount?: number;
+  label?: string;
+}) => {
+  return foo;
 });
 
 ================================================================================
