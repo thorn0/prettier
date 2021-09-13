@@ -1,6 +1,7 @@
 "use strict";
 
 const { isNonEmptyArray, getStringWidth } = require("../../common/util.js");
+const { canBreak } = require("../../document/doc-utils.js");
 const {
   builders: { line, group, indent, indentIfBreak },
   utils: { cleanDoc, willBreak },
@@ -141,7 +142,7 @@ function chooseLayout(path, options, print, leftDoc, rightPropertyName) {
     isComplexDestructuring(node) ||
     isComplexTypeAliasParams(node) ||
     hasComplexTypeAnnotation(node) ||
-    isArrowFunctionVariable(node)
+    (isArrowFunctionVariable(node) && canBreak(leftDoc))
   ) {
     return "break-lhs";
   }
@@ -274,19 +275,17 @@ function isTypeAlias(node) {
   return node.type === "TSTypeAliasDeclaration" || node.type === "TypeAlias";
 }
 
-function getTypeParams(node) {
+function hasComplexTypeAnnotation(node) {
   if (node.type !== "VariableDeclarator") {
-    return;
+    return false;
   }
   const { typeAnnotation } = node.id;
   if (!typeAnnotation || !typeAnnotation.typeAnnotation) {
-    return;
+    return false;
   }
-  return getTypeParametersFromTypeReference(typeAnnotation.typeAnnotation);
-}
-
-function hasComplexTypeAnnotation(node) {
-  const typeParams = getTypeParams(node);
+  const typeParams = getTypeParametersFromTypeReference(
+    typeAnnotation.typeAnnotation
+  );
   return (
     isNonEmptyArray(typeParams) &&
     typeParams.length > 1 &&
@@ -299,9 +298,8 @@ function hasComplexTypeAnnotation(node) {
 }
 
 function isArrowFunctionVariable(node) {
-  const typeParams = getTypeParams(node);
   return (
-    isNonEmptyArray(typeParams) &&
+    node.type === "VariableDeclarator" &&
     node.init &&
     node.init.type === "ArrowFunctionExpression"
   );
