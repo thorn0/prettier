@@ -3,7 +3,7 @@
 const { isNonEmptyArray, getStringWidth } = require("../../common/util.js");
 const {
   builders: { line, group, indent, indentIfBreak },
-  utils: { cleanDoc, willBreak },
+  utils: { cleanDoc, willBreak, canBreak },
 } = require("../../document/index.js");
 const {
   hasLeadingOwnLineComment,
@@ -140,8 +140,7 @@ function chooseLayout(path, options, print, leftDoc, rightPropertyName) {
   if (
     isComplexDestructuring(node) ||
     isComplexTypeAliasParams(node) ||
-    hasComplexTypeAnnotation(node) ||
-    isArrowFunctionVariable(node)
+    (isNonEmptyArray(getTypeParams(node)) && canBreak(leftDoc))
   ) {
     return "break-lhs";
   }
@@ -283,28 +282,6 @@ function getTypeParams(node) {
     return;
   }
   return getTypeParametersFromTypeReference(typeAnnotation.typeAnnotation);
-}
-
-function hasComplexTypeAnnotation(node) {
-  const typeParams = getTypeParams(node);
-  return (
-    isNonEmptyArray(typeParams) &&
-    typeParams.length > 1 &&
-    typeParams.some(
-      (param) =>
-        isNonEmptyArray(getTypeParametersFromTypeReference(param)) ||
-        param.type === "TSConditionalType"
-    )
-  );
-}
-
-function isArrowFunctionVariable(node) {
-  const typeParams = getTypeParams(node);
-  return (
-    isNonEmptyArray(typeParams) &&
-    node.init &&
-    node.init.type === "ArrowFunctionExpression"
-  );
 }
 
 function getTypeParametersFromTypeReference(node) {
