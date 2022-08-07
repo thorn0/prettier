@@ -16,11 +16,8 @@ function visitNode(node, fn) {
       // Object.entries returns an array of arrays. There are multiple ways to
       // iterate over objects but the Object.keys combined with a for loop
       // benchmarks well. for-in is fast too and doesn't create an array.
-      for (const key in node) {
-        if (
-          Object.prototype.hasOwnProperty.call(node, key) &&
-          !ignoredProperties.has(key)
-        ) {
+      for (const key of Object.keys(node)) {
+        if (!ignoredProperties.has(key)) {
           node[key] = visitNode(node[key], fn);
         }
       }

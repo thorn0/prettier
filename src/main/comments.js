@@ -52,12 +52,11 @@ function getSortedChildNodes(node, options, resultArray) {
 
   if (!childNodes && typeof node === "object") {
     childNodes = [];
-    for (const key in node) {
+    for (const key of Object.keys(node)) {
       if (
         key !== "enclosingNode" &&
         key !== "precedingNode" &&
         key !== "followingNode" &&
-        Object.prototype.hasOwnProperty.call(node, key) &&
         !printer.ignoredProperties?.has(key)
       ) {
         const value = node[key];

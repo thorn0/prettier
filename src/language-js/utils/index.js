@@ -93,12 +93,8 @@ function hasNode(node, fn) {
   if (typeof result === "boolean") {
     return result;
   }
-  for (const key in node) {
-    if (
-      Object.prototype.hasOwnProperty.call(node, key) &&
-      !ignoredProperties?.has(key) &&
-      hasNode(node[key], fn)
-    ) {
+  for (const key of Object.keys(node)) {
+    if (!ignoredProperties?.has(key) && hasNode(node[key], fn)) {
       return true;
     }
   }

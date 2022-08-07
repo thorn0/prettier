@@ -26,11 +26,8 @@ function massageAST(ast, options) {
 
     const newObj = {};
 
-    for (const key in node) {
-      if (
-        Object.prototype.hasOwnProperty.call(node, key) &&
-        !ignoredProperties.has(key)
-      ) {
+    for (const key of Object.keys(node)) {
+      if (!ignoredProperties.has(key)) {
         newObj[key] = recurse(node[key], node);
       }
     }

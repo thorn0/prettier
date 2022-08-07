@@ -74,11 +74,8 @@ async function printEmbeddedLanguages(
       return;
     }
 
-    for (const key in node) {
-      if (
-        Object.prototype.hasOwnProperty.call(node, key) &&
-        !ignoredProperties?.has(key)
-      ) {
+    for (const key of Object.keys(node)) {
+      if (!ignoredProperties?.has(key)) {
         if (Array.isArray(node[key])) {
           path.each(recurse, key);
         } else {
