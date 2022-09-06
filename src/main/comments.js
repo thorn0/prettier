@@ -17,7 +17,10 @@ import {
   addDanglingComment,
   addTrailingComment,
   isNonEmptyArray,
+  getLast,
 } from "../common/util.js";
+import { getDocType } from "../document/utils.js";
+import { DOC_TYPE_ARRAY, DOC_TYPE_LINE_SUFFIX } from "../document/constants.js";
 import createGetVisitorKeysFunction from "./create-get-visitor-keys-function.js";
 
 const childNodesCache = new WeakMap();
@@ -351,10 +354,7 @@ function breakTies(tiesToBreak, text, options) {
   }
   const { precedingNode, followingNode, enclosingNode } = tiesToBreak[0];
 
-  const gapRegExp =
-    (options.printer.getGapRegex &&
-      options.printer.getGapRegex(enclosingNode)) ||
-    /^[\s(]*$/;
+  const gapRegExp = options.printer.getGapRegex?.(enclosingNode) || /^[\s(]*$/;
 
   let gapEndPos = options.locStart(followingNode);
 
@@ -397,7 +397,7 @@ function breakTies(tiesToBreak, text, options) {
   }
 
   for (const node of [precedingNode, followingNode]) {
-    if (node.comments && node.comments.length > 1) {
+    if (node.comments?.length > 1) {
       node.comments.sort((a, b) => options.locStart(a) - options.locStart(b));
     }
   }
@@ -431,11 +431,10 @@ function printLeadingComment(path, options) {
   const parts = [printComment(path, options)];
 
   const { printer, originalText, locStart, locEnd } = options;
-  const isBlock = printer.isBlockComment && printer.isBlockComment(comment);
 
   // Leading block comments should see if they need to stay on the
   // same line or not.
-  if (isBlock) {
+  if (printer.isBlockComment?.(comment)) {
     const lineBreak = hasNewline(originalText, locEnd(comment))
       ? hasNewline(originalText, locStart(comment), {
           backwards: true,
@@ -461,14 +460,30 @@ function printLeadingComment(path, options) {
   return parts;
 }
 
-function printTrailingComment(path, options) {
+function printTrailingComment(path, options, previousCommentDoc) {
   const comment = path.getValue();
   const printed = printComment(path, options);
 
   const { printer, originalText, locStart } = options;
-  const isBlock = printer.isBlockComment && printer.isBlockComment(comment);
 
-  if (hasNewline(originalText, locStart(comment), { backwards: true })) {
+  let shouldPrintOnNewLine = false;
+
+  if (previousCommentDoc) {
+    const previousCommentDocType = getDocType(previousCommentDoc);
+    if (
+      previousCommentDocType === DOC_TYPE_LINE_SUFFIX ||
+      (previousCommentDocType === DOC_TYPE_ARRAY &&
+        getDocType(previousCommentDoc[0]) === DOC_TYPE_LINE_SUFFIX)
+    ) {
+      shouldPrintOnNewLine = true;
+    }
+  }
+
+  shouldPrintOnNewLine ||= hasNewline(originalText, locStart(comment), {
+    backwards: true,
+  });
+
+  if (shouldPrintOnNewLine) {
     // This allows comments at the end of nested structures:
     // {
     //   x: 1,
@@ -490,14 +505,12 @@ function printTrailingComment(path, options) {
     return lineSuffix([hardline, isLineBeforeEmpty ? hardline : "", printed]);
   }
 
-  let parts = [" ", printed];
-
   // Trailing block comments never need a newline
-  if (!isBlock) {
-    parts = [lineSuffix(parts), breakParent];
+  if (printer.isBlockComment?.(comment)) {
+    return [" ", printed];
   }
 
-  return parts;
+  return [lineSuffix([" ", printed]), breakParent];
 }
 
 function printDanglingComments(path, options, sameIndent, filter) {
@@ -546,7 +559,7 @@ function printCommentsSeparately(path, options, ignored) {
   const trailingParts = [];
   path.each(() => {
     const comment = path.getValue();
-    if (ignored && ignored.has(comment)) {
+    if (ignored?.has(comment)) {
       return;
     }
 
@@ -554,7 +567,9 @@ function printCommentsSeparately(path, options, ignored) {
     if (leading) {
       leadingParts.push(printLeadingComment(path, options));
     } else if (trailing) {
-      trailingParts.push(printTrailingComment(path, options));
+      trailingParts.push(
+        printTrailingComment(path, options, getLast(trailingParts))
+      );
     }
   }, "comments");
 

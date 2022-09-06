@@ -549,7 +549,7 @@ function printDocToString(doc, options) {
         break;
       }
       case DOC_TYPE_LINE_SUFFIX:
-        lineSuffix.push({ ind, mode, doc: doc.contents });
+        lineSuffix.push({ ind, mode: MODE_BREAK, doc: doc.contents });
         break;
 
       case DOC_TYPE_LINE_SUFFIX_BOUNDARY:
@@ -582,8 +582,8 @@ function printDocToString(doc, options) {
 
           case MODE_BREAK:
             if (lineSuffix.length > 0) {
-              cmds.push({ ind, mode, doc }, ...lineSuffix.reverse());
-              lineSuffix.length = 0;
+              cmds.push({ ind, mode, doc });
+              flushLineSuffix();
               break;
             }
 
@@ -619,8 +619,7 @@ function printDocToString(doc, options) {
     // Flush remaining line-suffix contents at the end of the document, in case
     // there is no new line after the line-suffix.
     if (cmds.length === 0 && lineSuffix.length > 0) {
-      cmds.push(...lineSuffix.reverse());
-      lineSuffix.length = 0;
+      flushLineSuffix();
     }
   }
 
@@ -644,6 +643,13 @@ function printDocToString(doc, options) {
   }
 
   return { formatted: out.join("") };
+
+  function flushLineSuffix() {
+    for (let i = lineSuffix.length - 1; i >= 0; i--) {
+      cmds.push(lineSuffix[i]);
+    }
+    lineSuffix.length = 0;
+  }
 }
 
 export { printDocToString };
