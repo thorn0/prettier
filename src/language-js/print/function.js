@@ -32,7 +32,6 @@ const {
   isJsxNode,
   isTemplateOnItsOwnLine,
   shouldPrintComma,
-  startsWithNoLookaheadToken,
   isBinaryish,
   isLineComment,
   hasComment,
@@ -45,6 +44,7 @@ const {
   getLeftSide,
 } = require("../utils/index.js");
 const { locEnd } = require("../loc.js");
+const pathNeedsParens = require("../needs-parens.js");
 const {
   printFunctionParameters,
   shouldGroupFunctionParameters,
@@ -373,10 +373,7 @@ function printArrowFunction(path, options, print, args) {
   // a <= a ? a : a
   const shouldAddParens =
     node.body.type === "ConditionalExpression" &&
-    !startsWithNoLookaheadToken(
-      node.body,
-      (node) => node.type === "ObjectExpression"
-    );
+    !path.call(() => pathNeedsParens(path, options), "body");
 
   return group([
     ...parts,

@@ -192,6 +192,32 @@ class AstPath {
       node = this.stack[stackPointer--];
     }
   }
+
+  callAncestor(callback, predicate) {
+    let stackPointer = this.stack.length - 1;
+
+    let name = null;
+    let node = this.stack[stackPointer--];
+
+    while (node) {
+      let number = null;
+      if (typeof name === "number") {
+        number = name;
+        name = this.stack[stackPointer--];
+        node = this.stack[stackPointer--];
+      }
+
+      if (name !== null && predicate(node, name, number)) {
+        const parentValues = this.stack.splice(stackPointer + 2);
+        const result = callback(this);
+        this.stack.push(...parentValues);
+        return result;
+      }
+
+      name = this.stack[stackPointer--];
+      node = this.stack[stackPointer--];
+    }
+  }
 }
 
 module.exports = AstPath;

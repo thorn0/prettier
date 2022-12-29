@@ -177,11 +177,11 @@ var let = 1
 
 alert((let[0] = 1))
 
-;((let)[0] = 1) || 2
+;(let[0] = 1) || 2
 
-;((let)[0] = 1), 2
+;(let[0] = 1), 2
 
-;((let)[0] = 1) ? a : b
+;(let[0] = 1) ? a : b
 
 if ((let[0] = 1));
 
@@ -191,19 +191,19 @@ do {} while ((let[0] = 1))
 
 var a = (let[0] = 1)
 
-;((let)[0] = 1) instanceof a
+;(let[0] = 1) instanceof a
 
 void (let[0] = 1)
 
-;((let)[0] = 1)()
+;(let[0] = 1)()
 
 new (let[0] = 1)()
 
-;((let)[0] = 1)\`\`
+;(let[0] = 1)\`\`
 
-;((let)[0] = 1).toString
+;(let[0] = 1).toString
 
-;((let)[0] = 1)?.toString
+;(let[0] = 1)?.toString
 
 ;[...(let[0] = 1)]
 
@@ -402,11 +402,11 @@ var let = 1;
 
 alert((let[0] = 1));
 
-((let)[0] = 1) || 2;
+(let[0] = 1) || 2;
 
-((let)[0] = 1), 2;
+(let[0] = 1), 2;
 
-((let)[0] = 1) ? a : b;
+(let[0] = 1) ? a : b;
 
 if ((let[0] = 1));
 
@@ -416,19 +416,19 @@ do {} while ((let[0] = 1));
 
 var a = (let[0] = 1);
 
-((let)[0] = 1) instanceof a;
+(let[0] = 1) instanceof a;
 
 void (let[0] = 1);
 
-((let)[0] = 1)();
+(let[0] = 1)();
 
 new (let[0] = 1)();
 
-((let)[0] = 1)\`\`;
+(let[0] = 1)\`\`;
 
-((let)[0] = 1).toString;
+(let[0] = 1).toString;
 
-((let)[0] = 1)?.toString;
+(let[0] = 1)?.toString;
 
 [...(let[0] = 1)];
 

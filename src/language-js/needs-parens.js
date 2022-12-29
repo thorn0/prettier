@@ -9,7 +9,6 @@ const {
   hasNakedLeftSide,
   hasNode,
   isBitwiseOperator,
-  startsWithNoLookaheadToken,
   shouldFlatten,
   getPrecedence,
   isCallExpression,
@@ -78,19 +77,23 @@ function needsParens(path, options) {
     }
 
     // `for ((let.a) of []);`
-    if (node.name === "let") {
-      const expression = path.findAncestor(
+    if (
+      node.name === "let" &&
+      path.callAncestor(
+        () =>
+          path.call(
+            () =>
+              startsWithNoLookaheadToken(
+                path,
+                (leftmostNode) => leftmostNode === node,
+                options
+              ),
+            "left"
+          ),
         (node) => node.type === "ForOfStatement"
-      )?.left;
-      if (
-        expression &&
-        startsWithNoLookaheadToken(
-          expression,
-          (leftmostNode) => leftmostNode === node
-        )
-      ) {
-        return true;
-      }
+      )
+    ) {
+      return true;
     }
 
     // `(let)[a] = 1`
@@ -99,53 +102,56 @@ function needsParens(path, options) {
       node.name === "let" &&
       parent.type === "MemberExpression" &&
       parent.computed &&
-      !parent.optional
-    ) {
-      const statement = path.findAncestor(
+      !parent.optional &&
+      path.callAncestor(
+        () => {
+          const statement = path.getValue();
+          return path.call(
+            () =>
+              startsWithNoLookaheadToken(
+                path,
+                (leftmostNode) => leftmostNode === node,
+                options
+              ),
+            statement.type === "ExpressionStatement"
+              ? "expression"
+              : statement.type === "ForStatement"
+              ? "init"
+              : "left"
+          );
+        },
         (node) =>
           node.type === "ExpressionStatement" ||
           node.type === "ForStatement" ||
           node.type === "ForInStatement"
-      );
-      const expression = !statement
-        ? undefined
-        : statement.type === "ExpressionStatement"
-        ? statement.expression
-        : statement.type === "ForStatement"
-        ? statement.init
-        : statement.left;
-      if (
-        expression &&
-        startsWithNoLookaheadToken(
-          expression,
-          (leftmostNode) => leftmostNode === node
-        )
-      ) {
-        return true;
-      }
+      )
+    ) {
+      return true;
     }
 
     return false;
   }
 
   if (
-    node.type === "ObjectExpression" ||
-    node.type === "FunctionExpression" ||
-    node.type === "ClassExpression" ||
-    node.type === "DoExpression"
-  ) {
-    const expression = path.findAncestor(
+    (node.type === "ObjectExpression" ||
+      node.type === "FunctionExpression" ||
+      node.type === "ClassExpression" ||
+      node.type === "DoExpression") &&
+    path.callAncestor(
+      () =>
+        path.call(
+          () =>
+            startsWithNoLookaheadToken(
+              path,
+              (leftmostNode) => leftmostNode === node,
+              options
+            ),
+          "expression"
+        ),
       (node) => node.type === "ExpressionStatement"
-    )?.expression;
-    if (
-      expression &&
-      startsWithNoLookaheadToken(
-        expression,
-        (leftmostNode) => leftmostNode === node
-      )
-    ) {
-      return true;
-    }
+    )
+  ) {
+    return true;
   }
 
   switch (parent.type) {
@@ -226,8 +232,9 @@ function needsParens(path, options) {
         name === "body" &&
         node.type !== "SequenceExpression" && // these have parens added anyway
         startsWithNoLookaheadToken(
-          node,
-          (node) => node.type === "ObjectExpression"
+          path,
+          (node) => node.type === "ObjectExpression",
+          options
         )
       ) {
         return true;
@@ -1018,6 +1025,74 @@ function shouldWrapFunctionForExportDefault(path, options) {
     (childPath) => shouldWrapFunctionForExportDefault(childPath, options),
     ...getLeftSidePathName(path, node)
   );
+}
+
+/**
+ * @typedef {import("./types/estree").Node} Node
+ * @typedef {import("../common/ast-path")} AstPath
+ */
+
+/**
+ * Tests if the leftmost node of the expression matches the predicate. E.g.,
+ * used to check whether an expression statement needs to be wrapped in extra
+ * parentheses because it starts with:
+ *
+ * - `{`
+ * - `function`, `class`, or `do {}`
+ * - `let[`
+ *
+ * @param {AstPath} path
+ * @param {(leftmostNode: Node) => boolean} predicate
+ * @returns {boolean}
+ */
+function startsWithNoLookaheadToken(
+  path,
+  predicate,
+  options,
+  shouldCheckParens = false
+) {
+  const node = path.getValue();
+
+  if (predicate(node)) {
+    return true;
+  }
+
+  if (shouldCheckParens && needsParens(path, options)) {
+    return false;
+  }
+
+  const recurse = () =>
+    startsWithNoLookaheadToken(path, predicate, options, true);
+
+  switch (node.type) {
+    case "BinaryExpression":
+    case "LogicalExpression":
+    case "AssignmentExpression":
+    case "NGPipeExpression":
+      return path.call(recurse, "left");
+    case "MemberExpression":
+    case "OptionalMemberExpression":
+      return path.call(recurse, "object");
+    case "TaggedTemplateExpression":
+      return path.call(recurse, "tag");
+    case "CallExpression":
+    case "OptionalCallExpression":
+      return path.call(recurse, "callee");
+    case "ConditionalExpression":
+      return path.call(recurse, "test");
+    case "UpdateExpression":
+      return !node.prefix && path.call(recurse, "argument");
+    case "BindExpression":
+      return Boolean(node.object) && path.call(recurse, "object");
+    case "SequenceExpression":
+      return path.call(recurse, "expressions", 0);
+    case "TSSatisfiesExpression":
+    case "TSAsExpression":
+    case "TSNonNullExpression":
+      return path.call(recurse, "expression");
+    default:
+      return false;
+  }
 }
 
 module.exports = needsParens;
